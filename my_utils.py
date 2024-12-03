@@ -100,11 +100,8 @@ class RAG:
         """Use the key text as the embedding for future retrieval of the value text."""
         self.corpus.append(value)
         self.corpus_tokens = bm25s.tokenize(self.corpus)
-        print(type(self.corpus_tokens))
-        print(self.corpus_tokens)
 
         self.id2evidence[str(self.insert_acc)] = value
-        print('You should see this')
         self.insert_acc += 1
 
     def retrieve(self, query: str, top_k: int) -> list[str]:
