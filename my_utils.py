@@ -104,6 +104,7 @@ class RAG:
         print(self.corpus_tokens)
 
         self.id2evidence[str(self.insert_acc)] = value
+        print('You should see this')
         self.insert_acc += 1
 
     def retrieve(self, query: str, top_k: int) -> list[str]:
@@ -126,9 +127,13 @@ class RAG:
 
     def retrieve_with_bm25(self, query: str, top_k: int) -> list[str]:
         """Retrieve top-k text chunks using BM25."""
-        self.retriever.index(self.corpus_tokens) # TODO: This is not efficient
+        top_k = min(top_k, self.insert_acc)
+        self.retriever.index(self.corpus_tokens) # TODO: I guess this is not efficient
         query_tokens = bm25s.tokenize(query)
-        results, scores = self.retriever.retrieve(query_tokens, self.corpus, top_k)
+        retrieved_results, scores = self.retriever.retrieve(query_tokens, self.corpus, top_k)
+        # Note: retrieved_results is a list of list of strings. 
+        # Where the outer list means the queries, and the inner list is the top-k retrieved chunks.
+        results = list(retrieved_results[0])
         return results
 
 def extract_json_string(res: str) -> str:
