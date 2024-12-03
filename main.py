@@ -7,7 +7,7 @@ from colorama import Fore, Style
 import torch
 from transformers import AutoModelForCausalLM, AutoTokenizer, BitsAndBytesConfig
 
-from utils import RAG, strip_all_lines
+from my_utils import RAG, strip_all_lines
 
 class LocalModelAgent(Agent):
     """
@@ -72,7 +72,7 @@ class LocalModelAgent(Agent):
             question = self.inputs[-1]
             answer = self.self_outputs[-1]
             chunk = self.get_shot_template().format(question=question, answer=answer)
-            self.rag.insert(key=question, value=chunk)
+            self.rag.insert_with_bm25(key=question, value=chunk)
             return True
         return False
 
@@ -143,7 +143,7 @@ class ClassificationAgent(LocalModelAgent):
         prompt_zeroshot = self.get_zeroshot_prompt(option_text, text)
         prompt_fewshot = self.get_fewshot_template(option_text, text)
         
-        shots = self.rag.retrieve(query=text, top_k=self.rag.top_k) if (self.rag.insert_acc > 0) else []
+        shots = self.rag.retrieve_with_bm25(query=text, top_k=self.rag.top_k) if (self.rag.insert_acc > 0) else []
         if len(shots):
             fewshot_text = "\n\n\n".join(shots).replace("\\", "\\\\")
             try:
