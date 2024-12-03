@@ -261,13 +261,15 @@ if __name__ == "__main__":
         'exp_name': f'self_streamicl_{args.bench_name}_{args.model_name}',
         'bench_name': bench_cfg['bench_name'],
         'max_tokens': max_tokens,
-        'do_sample': False,
+        'do_sample': True,
         'device': args.device,
         'use_8bit': args.use_8bit,
         'rag': {
-            'embedding_model': 'BAAI/bge-base-en-v1.5',
-            'seed': 42,
-            "top_k": 16,
+            # 'embedding_model': 'BAAI/bge-base-en-v1.5',
+            # 'embedding_model': 'facebook/dpr-question_encoder-single-nq-base',
+            'embedding_model': 'jinaai/jina-embeddings-v3',
+            'seed': 24,
+            "top_k": 5,
             "order": "similar_at_top"
         }
     }
