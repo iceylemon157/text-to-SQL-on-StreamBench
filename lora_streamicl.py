@@ -25,23 +25,9 @@ class LocalModelAgent(Agent):
         """
         super().__init__(config)
         self.llm_config = config
-        if config['use_8bit']:
-            quantization_config = BitsAndBytesConfig(
-                load_in_8bit=True,
-                llm_int8_has_fp16_weight=False
-            )
-            self.model = AutoModelForCausalLM.from_pretrained(
-                config["model_name"],
-                quantization_config=quantization_config,
-                device_map=config["device"]
-            )
-        else:
-            self.model = AutoModelForCausalLM.from_pretrained(
-                config["model_name"],
-                torch_dtype=torch.float16,
-                device_map=config["device"]
-            )
-        self.tokenizer = AutoTokenizer.from_pretrained(config["model_name"])
+
+        self.loadModelAndTokenizer()
+
         self.rag = RAG(config["rag"])
         # Save the streaming inputs and outputs for iterative improvement
         self.inputs = list()
@@ -50,8 +36,6 @@ class LocalModelAgent(Agent):
         # Correct label types and wrong label count
         self.correct_label_types = dict()
         self.wrong_label_count = dict()
-
-        self.model.eval()
 
     def generate_response(self, messages: list) -> str:
         """
@@ -106,10 +90,46 @@ class LocalModelAgent(Agent):
 
         return correctness
 
+    def loadModelAndTokenizer(self):
+        """
+        Load the local model and tokenizer.
+        """
+        if self.llm_config['use_8bit']:
+            quantization_config = BitsAndBytesConfig(
+                load_in_8bit=True,
+                llm_int8_has_fp16_weight=False
+            )
+            self.model = AutoModelForCausalLM.from_pretrained(
+                self.llm_config["model_name"],
+                quantization_config=quantization_config,
+                device_map=self.llm_config["device"]
+            )
+        else:
+            self.model = AutoModelForCausalLM.from_pretrained(
+                self.llm_config["model_name"],
+                torch_dtype=torch.float16,
+                device_map=self.llm_config["device"]
+            )
+        self.tokenizer = AutoTokenizer.from_pretrained(self.llm_config["model_name"])
+        self.model.eval()
+
+    def unloadModelAndTokenizer(self):
+        """
+        Unload the local model and tokenizer to avoid memory issues.
+        """
+        del self.model
+        del self.tokenizer
+        self.model = None
+        self.tokenizer = None
+        torch.cuda.empty_cache()
+
     def trainWithQLoRA(self):
         """
         Train the agent with QLoRA.
         """
+
+        # First unload the LLM agent to avoid memory issues
+        self.unloadModel()
 
         lora_train_model_args = LoraTrainModelArguments(model_name_or_path=self.llm_config["model_name"])
         lora_train_data_args = LoraTrainDataArguments(dataset=self.rag.rag_filename) # TODO: Implement LoRA dataset
@@ -118,6 +138,9 @@ class LocalModelAgent(Agent):
         lora_train_generation_args = LoraTrainGenerationArguments(max_new_tokens=self.llm_config['max_tokens'])
 
         lora_train(lora_train_model_args, lora_train_data_args, lora_train_training_args, lora_train_generation_args)
+
+        # Reload the LLM agent
+        self.loadModelAndTokenizer()
 
 
 class ClassificationAgent(LocalModelAgent):
