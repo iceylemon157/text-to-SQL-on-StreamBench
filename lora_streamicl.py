@@ -76,6 +76,11 @@ class LocalModelAgent(Agent):
                 self.correct_label_types[answer] = 0
             self.correct_label_types[answer] += 1
 
+            if self.rag.insert_acc % 100 == 0:
+                # Use LoRA to train the agent with RAG memory
+                # Train LoRA if correctness is True => ensure only trained once per 100 correct answers
+                self.trainWithQLoRA()
+
         else:
 
             question = self.inputs[-1]
@@ -85,10 +90,6 @@ class LocalModelAgent(Agent):
             self.wrong_label_count[answer] += 1
 
         print('RAG size:', self.rag.insert_acc)
-
-        if self.rag.insert_acc > 0 and self.rag.insert_acc % 100 == 0:
-            # Use LoRA to train the agent with RAG memory
-            self.trainWithQLoRA()
 
         return correctness
 
