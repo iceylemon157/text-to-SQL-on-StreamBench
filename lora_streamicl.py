@@ -129,7 +129,7 @@ class LocalModelAgent(Agent):
         """
 
         # First unload the LLM agent to avoid memory issues
-        self.unloadModel()
+        self.unloadModelAndTokenizer()
 
         lora_train_model_args = LoraTrainModelArguments(model_name_or_path=self.llm_config["model_name"])
         lora_train_data_args = LoraTrainDataArguments(dataset=self.rag.rag_filename) # TODO: Implement LoRA dataset
