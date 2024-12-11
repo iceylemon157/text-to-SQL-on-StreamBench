@@ -11,6 +11,8 @@ from transformers import logging as transformers_logging
 from my_utils import RAG, strip_all_lines
 from hw3.lora_train import lora_train, LoraTrainDataArguments, LoraTrainGenerationArguments, LoraTrainModelArguments, LoraTrainTrainingArguments
 
+from peft import PeftModel
+
 # Ignore warning messages from transformers
 warnings.filterwarnings("ignore")
 transformers_logging.set_verbosity_error()
@@ -90,7 +92,7 @@ class LocalModelAgent(Agent):
 
         return correctness
 
-    def loadModelAndTokenizer(self):
+    def loadModelAndTokenizer(self, peft_path=None):
         """
         Load the local model and tokenizer.
         """
@@ -110,6 +112,10 @@ class LocalModelAgent(Agent):
                 torch_dtype=torch.float16,
                 device_map=self.llm_config["device"]
             )
+        
+        if peft_path:
+            self.model = PeftModel.from_pretrained(self.model, peft_path)
+
         self.tokenizer = AutoTokenizer.from_pretrained(self.llm_config["model_name"])
         self.model.eval()
 
@@ -135,7 +141,7 @@ class LocalModelAgent(Agent):
         lora_train_data_args = LoraTrainDataArguments(dataset=self.rag.rag_filename) # TODO: Implement LoRA dataset
         # TODO: output_dir
         lora_train_training_args = LoraTrainTrainingArguments(
-            output_dir='output/test_adapter', 
+            output_dir=f'output/test_adapter/rag-count-{self.rag.insert_acc}', 
             lora_r=16, 
             bits=4, 
             do_train=True, 
@@ -150,7 +156,7 @@ class LocalModelAgent(Agent):
         lora_train(lora_train_model_args, lora_train_data_args, lora_train_training_args, lora_train_generation_args)
 
         # Reload the LLM agent
-        self.loadModelAndTokenizer()
+        self.loadModelAndTokenizer(f'output/test_adapter/rag-count-{self.rag.insert_acc}/checkpoint-100')
 
 
 class ClassificationAgent(LocalModelAgent):
