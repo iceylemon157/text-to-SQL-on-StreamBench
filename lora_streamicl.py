@@ -89,7 +89,6 @@ class LocalModelAgent(Agent):
             if answer not in self.correct_label_types:
                 self.correct_label_types[answer] = 0
             self.correct_label_types[answer] += 1
-            return True
 
         else:
 
@@ -105,7 +104,7 @@ class LocalModelAgent(Agent):
             # Use LoRA to train the agent with RAG memory
             self.trainWithQLoRA()
 
-        return False
+        return correctness
 
     def trainWithQLoRA(self):
         """
@@ -113,7 +112,7 @@ class LocalModelAgent(Agent):
         """
 
         lora_train_model_args = LoraTrainModelArguments(model_name_or_path=self.llm_config["model_name"])
-        lora_train_data_args = LoraTrainDataArguments(dataset='output/rag_data.json') # TODO: Implement LoRA dataset
+        lora_train_data_args = LoraTrainDataArguments(dataset=self.rag.rag_filename) # TODO: Implement LoRA dataset
         # TODO: output_dir
         lora_train_training_args = LoraTrainTrainingArguments(output_dir='output/test_adapter', lora_r=16, bits=4, do_train=True, bf16=True, learning_rate=3e-5)
         lora_train_generation_args = LoraTrainGenerationArguments(max_new_tokens=self.llm_config['max_tokens'])
@@ -426,7 +425,7 @@ if __name__ == "__main__":
             'seed': 42,
             "top_k": 16,
             "order": "similar_at_top",
-            'rag_filename': 'output/rag_data.json'
+            'rag_filename': 'output/rag_data.jsonl'
         }
     }
     agent = agent_name(llm_config)

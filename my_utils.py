@@ -6,6 +6,7 @@ import numpy as np
 from enum import Enum
 from pathlib import Path
 from transformers import AutoTokenizer, AutoModel
+import json
 
 import bm25s
 
@@ -118,9 +119,11 @@ class RAG:
         self.id2evidence[str(self.insert_acc)] = value
         self.insert_acc += 1
 
-        # Save the key-value pair to the file as input output (json format)
+        # Save the key-value pair to the file as input output (jsonl format)
         with open(self.rag_filename, 'a') as file:
-            file.write(f'{{"input": "{key}", "output": "{value}"}}\n')
+            dic = {"input": key, "output": value}
+            line = json.dumps(dic)
+            print(line, file=file)
     
     def insert_with_bm25(self, key: str, ggvalue: str) -> None:
         """Use the key text as the embedding for future retrieval of the value text."""
