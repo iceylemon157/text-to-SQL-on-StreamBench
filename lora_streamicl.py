@@ -79,8 +79,6 @@ class LocalModelAgent(Agent):
         """
         Update the agent based on the correctness of its output.
         """
-        print(self.correct_label_types)
-        print(self.wrong_label_count)
         if correctness:
             question = self.inputs[-1]
             answer = self.self_outputs[-1]
@@ -100,6 +98,8 @@ class LocalModelAgent(Agent):
             if answer not in self.wrong_label_count:
                 self.wrong_label_count[answer] = 0
             self.wrong_label_count[answer] += 1
+
+        print('RAG size:', self.rag.insert_acc)
 
         if self.rag.insert_acc > 0 and self.rag.insert_acc % 100 == 0:
             # Use LoRA to train the agent with RAG memory
