@@ -1,0 +1,3 @@
+bm25s
+einops
+peft

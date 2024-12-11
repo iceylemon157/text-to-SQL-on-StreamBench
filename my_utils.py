@@ -43,6 +43,17 @@ def text_in_label_set(text: str, label_set: set[str]) -> bool:
     fuzzy_label_set = {label.lower() for label in label_set}
     return text in fuzzy_label_set
 
+def get_nlsql_zeroshot_prompt(table_schema: str, user_query: str) -> str:
+    prompt = f"""\
+    {table_schema}
+    
+    -- Using valid SQLite, answer the following question for the tables provided above.
+    -- Question: {user_query}
+    
+    Now, generate the correct SQL code directly in the following format:
+    ```sql\n<your_SQL_code>\n```"""
+    return strip_all_lines(prompt)
+
 class RetrieveOrder(Enum):
     SIMILAR_AT_TOP = "similar_at_top"  # the most similar retrieved chunk is ordered at the top
     SIMILAR_AT_BOTTOM = "similar_at_bottom"  # reversed
@@ -65,13 +76,24 @@ class RAG:
         assert rag_config["order"] in orders
         self.retrieve_order = rag_config["order"]
         random.seed(self.seed)
+
+        # text-2-sql usage
+        self.table_schema = None
         
         self.create_faiss_index()
         # TODO: make a file to save the inserted rows
+        self.rag_filename = rag_config["rag_filename"]
+        # Clear the file content
+        with open(self.rag_filename, 'w') as file:
+            pass
 
         self.retriever = bm25s.BM25()
         self.corpus = []
         self.corpus_tokens = []
+
+    def set_table_schema(self, table_schema: str) -> None:
+        # Set the table schema for the text-2-sql task
+        self.table_schema = table_schema
 
     def create_faiss_index(self):
         # Create a FAISS index
@@ -95,8 +117,12 @@ class RAG:
         self.index.add(np.expand_dims(embedding, axis=0))
         self.id2evidence[str(self.insert_acc)] = value
         self.insert_acc += 1
+
+        # Save the key-value pair to the file as input output (json format)
+        with open(self.rag_filename, 'a') as file:
+            file.write(f'{{"input": "{key}", "output": "{value}"}}\n')
     
-    def insert_with_bm25(self, key: str, value: str) -> None:
+    def insert_with_bm25(self, key: str, ggvalue: str) -> None:
         """Use the key text as the embedding for future retrieval of the value text."""
         self.corpus.append(value)
         self.corpus_tokens = bm25s.tokenize(self.corpus)
@@ -165,7 +191,7 @@ if __name__ == "__main__":
         "embedding_model": "BAAI/bge-base-en-v1.5",
         "rag_filename": "test_rag_pool",
         "seed": 42,
-        "top_k": 2,
+        "top_k": 16,
         "order": "similar_at_top"  # ["similar_at_top", "similar_at_bottom", "random"]
     }
     rag = RAG(rag_config)
