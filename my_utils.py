@@ -10,6 +10,8 @@ import json
 
 import bm25s
 
+table_schema = ''
+
 class JSONLinesHandler(logging.FileHandler):
     def emit(self, record):
         log_entry = self.format(record)
@@ -44,7 +46,7 @@ def text_in_label_set(text: str, label_set: set[str]) -> bool:
     fuzzy_label_set = {label.lower() for label in label_set}
     return text in fuzzy_label_set
 
-def get_nlsql_zeroshot_prompt(table_schema: str, user_query: str) -> str:
+def get_nlsql_zeroshot_prompt(user_query: str) -> str:
     prompt = f"""\
     {table_schema}
     
@@ -92,8 +94,10 @@ class RAG:
         self.corpus = []
         self.corpus_tokens = []
 
-    def set_table_schema(self, table_schema: str) -> None:
+    def set_table_schema(self, _table_schema: str) -> None:
         # Set the table schema for the text-2-sql task
+        global table_schema
+        table_schema = _table_schema
         self.table_schema = table_schema
 
     def create_faiss_index(self):
