@@ -6,6 +6,7 @@ import numpy as np
 from enum import Enum
 from pathlib import Path
 from transformers import AutoTokenizer, AutoModel
+import transformers
 import json
 
 import bm25s
@@ -46,6 +47,13 @@ def text_in_label_set(text: str, label_set: set[str]) -> bool:
     fuzzy_label_set = {label.lower() for label in label_set}
     return text in fuzzy_label_set
 
+def get_nlsql_system_prompt() -> str:
+    system_prompt = """\
+    Act as a professional programmer.
+    You will be given a table schema and a user query, and you need to generate the correct SQL code to answer the user query in the following format:
+    ```sql\n<your_SQL_code>\n```"""
+    return strip_all_lines(system_prompt)
+
 def get_nlsql_zeroshot_prompt(user_query: str) -> str:
     prompt = f"""\
     {table_schema}
@@ -56,6 +64,19 @@ def get_nlsql_zeroshot_prompt(user_query: str) -> str:
     Now, generate the correct SQL code directly in the following format:
     ```sql\n<your_SQL_code>\n```"""
     return strip_all_lines(prompt)
+
+def get_prompt(user_query: str, tokenizer: transformers.PreTrainedTokenizer) -> str:
+    messages = [
+        {"role": "system", "content": get_nlsql_system_prompt()},
+        {"role": "user", "content": get_nlsql_zeroshot_prompt(user_query)}
+    ]
+    text_chat = tokenizer.apply_chat_template(
+        messages,
+        tokenize=False,
+        add_generation_prompt=True
+    )
+
+    return text_chat
 
 class RetrieveOrder(Enum):
     SIMILAR_AT_TOP = "similar_at_top"  # the most similar retrieved chunk is ordered at the top

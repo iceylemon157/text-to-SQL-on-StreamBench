@@ -43,7 +43,7 @@ from peft import (
 from peft.tuners.lora import LoraLayer
 from transformers.trainer_utils import PREFIX_CHECKPOINT_DIR
 
-from my_utils import get_nlsql_zeroshot_prompt as get_prompt
+from my_utils import get_prompt
 
 def is_ipex_available():
     def get_major_and_minor_from_version(full_version):
@@ -624,7 +624,7 @@ def make_data_module(tokenizer: transformers.PreTrainedTokenizer, args) -> Dict:
             })
         elif dataset_format == 'input-output':
             dataset = dataset.map(lambda x: {
-                'input': get_prompt(x['input']),
+                'input': get_prompt(x['input'], tokenizer),
                 'output': x['output'],
             })
         # Remove unused columns.
@@ -637,7 +637,7 @@ def make_data_module(tokenizer: transformers.PreTrainedTokenizer, args) -> Dict:
     dataset = load_data(args.dataset)
     dataset = format_dataset(dataset, args.dataset_format)
     # shuffle dataset
-    dataset = dataset.shuffle(seed=2432)
+    # dataset = dataset.shuffle(seed=2432)
 
     # Split train/eval, reduce size
     if args.do_eval or args.do_predict:
