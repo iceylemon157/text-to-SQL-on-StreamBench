@@ -153,7 +153,7 @@ class LocalModelAgent(Agent):
             do_train=True, 
             bf16=True, 
             learning_rate=3e-5, 
-            num_train_epochs=3, 
+            max_steps=3 * (self.rag.insert_acc // 16),
             save_steps=self.rag.insert_acc, 
             per_device_train_batch_size=4, 
             gradient_accumulation_steps=4,
