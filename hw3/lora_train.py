@@ -636,6 +636,8 @@ def make_data_module(tokenizer: transformers.PreTrainedTokenizer, args) -> Dict:
      # Load dataset.
     dataset = load_data(args.dataset)
     dataset = format_dataset(dataset, args.dataset_format)
+    # shuffle dataset
+    dataset = dataset.shuffle(seed=2432)
 
     # Split train/eval, reduce size
     if args.do_eval or args.do_predict:

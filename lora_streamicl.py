@@ -148,7 +148,7 @@ class LocalModelAgent(Agent):
         # Total steps: 3 * (self.rag.insert_acc // 16)
         lora_train_training_args = LoraTrainTrainingArguments(
             output_dir=f'output/test_adapter/rag-count-{self.rag.insert_acc}', 
-            lora_r=16, 
+            lora_r=4, 
             bits=4, 
             do_train=True, 
             bf16=True, 
