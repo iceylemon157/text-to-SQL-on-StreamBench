@@ -140,7 +140,12 @@ class LocalModelAgent(Agent):
 
         lora_train_model_args = LoraTrainModelArguments(model_name_or_path=self.llm_config["model_name"])
         lora_train_data_args = LoraTrainDataArguments(dataset=self.rag.rag_filename) # TODO: Implement LoRA dataset
-        # TODO: output_dir
+
+        # Take about 3 epochs of training
+        # Dataset size: self.rag.insert_acc
+        # Batch size: 16
+        # save_steps: max_steps // 3
+        # Total steps: 3 * (self.rag.insert_acc // 16)
         lora_train_training_args = LoraTrainTrainingArguments(
             output_dir=f'output/test_adapter/rag-count-{self.rag.insert_acc}', 
             lora_r=16, 
@@ -148,16 +153,18 @@ class LocalModelAgent(Agent):
             do_train=True, 
             bf16=True, 
             learning_rate=3e-5, 
-            max_steps=100, 
-            save_steps=20,
-            gradient_accumulation_steps=1,
+            num_train_epochs=3, 
+            save_steps=self.rag.insert_acc, 
+            per_device_train_batch_size=4, 
+            gradient_accumulation_steps=4,
         )
         lora_train_generation_args = LoraTrainGenerationArguments(max_new_tokens=self.llm_config['max_tokens'])
 
         lora_train(lora_train_model_args, lora_train_data_args, lora_train_training_args, lora_train_generation_args)
 
         # Reload the LLM agent
-        self.loadModelAndTokenizer(f'output/test_adapter/rag-count-{self.rag.insert_acc}/checkpoint-100')
+        total_steps = 3 * (self.rag.insert_acc // 16)
+        self.loadModelAndTokenizer(f'output/test_adapter/rag-count-{self.rag.insert_acc}/checkpoint-{total_steps}')
 
 
 class ClassificationAgent(LocalModelAgent):
