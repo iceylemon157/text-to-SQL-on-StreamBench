@@ -88,12 +88,13 @@ class RAG:
         self.tokenizer = AutoTokenizer.from_pretrained(rag_config["embedding_model"])
         self.embed_model = AutoModel.from_pretrained(rag_config["embedding_model"]).eval()
         
-        self.main_index = self.create_faiss_index()
         self.indices = {}
         self.id2evidence = {}
         self.embed_dim = len(self.encode_data("Test embedding size"))
         self.insert_count = {}
         self.insert_acc = 0 # Total number of insertions across all tables
+
+        self.main_index = self.create_faiss_index()
 
         self.seed = rag_config["seed"]
         self.top_k = rag_config["top_k"]
