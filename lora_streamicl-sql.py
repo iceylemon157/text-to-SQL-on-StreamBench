@@ -507,7 +507,7 @@ if __name__ == "__main__":
             # 'embedding_model': 'BAAI/bge-base-en-v1.5',
             'embedding_model': 'Snowflake/snowflake-arctic-embed-m',
             'seed': 3224,
-            "top_k": 5,
+            "top_k": 16,
             "order": "similar_at_top",
             'rag_filename': 'output/rag_data.jsonl'
         }

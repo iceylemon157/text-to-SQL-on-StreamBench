@@ -88,7 +88,8 @@ class RAG:
         self.tokenizer = AutoTokenizer.from_pretrained(rag_config["embedding_model"])
         self.embed_model = AutoModel.from_pretrained(rag_config["embedding_model"]).eval()
         
-        self.indexes = {}
+        self.main_index = self.create_faiss_index()
+        self.indices = {}
         self.id2evidence = {}
         self.embed_dim = len(self.encode_data("Test embedding size"))
         self.insert_count = {}
@@ -124,13 +125,14 @@ class RAG:
 
     def insert(self, table_schema: str, key: str, value: str) -> None:
         """Use the key text as the embedding for future retrieval of the value text."""
-        if table_schema not in self.indexes:
-            self.indexes[table_schema] = self.create_faiss_index()
+        if table_schema not in self.indices:
+            self.indices[table_schema] = self.create_faiss_index()
             self.id2evidence[table_schema] = {}
             self.insert_count[table_schema] = 0
 
         embedding = self.encode_data(key).astype('float32')  # Ensure the data type is float32
-        self.indexes[table_schema].add(np.expand_dims(embedding, axis=0))
+        self.main_index.add(np.expand_dims(embedding, axis=0))
+        self.indices[table_schema].add(np.expand_dims(embedding, axis=0))
         self.id2evidence[table_schema][str(self.insert_count[table_schema])] = value
         self.insert_count[table_schema] += 1
         self.insert_acc += 1
@@ -143,14 +145,29 @@ class RAG:
 
     def retrieve(self, table_schema: str, query: str, top_k: int) -> list[str]:
         """Retrieve top-k text chunks"""
-        if table_schema not in self.indexes:
-            return []
+        """If table_schema has less than top_k chunks, use main_index to retrieve"""
 
+        data_count = self.insert_count[table_schema] if table_schema in self.insert_count else 0
+        embedding = self.encode_data(query).astype('float32')  # Ensure the data type is float32
+
+        # If the table_schema has less than top_k chunks, use main_index to retrieve
+        main_distances = []
+        main_indices = []
+        if data_count < top_k:
+            main_distances, main_indices = self.main_index.search(np.expand_dims(self.encode_data(query), axis=0), top_k - data_count)
+            main_distances = main_distances[0].tolist()
+            main_indices = main_indices[0].tolist()
+
+        # Retrieve the top-k chunks from the table_schema
         embedding = self.encode_data(query).astype('float32')  # Ensure the data type is float32
         top_k = min(top_k, self.insert_count[table_schema])
-        distances, indices = self.indexes[table_schema].search(np.expand_dims(embedding, axis=0), top_k)
+        distances, indices = self.indices[table_schema].search(np.expand_dims(embedding, axis=0), top_k)
         distances = distances[0].tolist()
         indices = indices[0].tolist()
+
+        # Combine the main and table-specific distances and indices
+        distances.extend(main_distances)
+        indices.extend(main_indices)
         
         results = [{'link': str(idx), '_score': {'faiss': dist}} for dist, idx in zip(distances, indices)]
         # Re-order the sequence based on self.retrieve_order
