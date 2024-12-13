@@ -328,6 +328,11 @@ class SQLGenerationAgent(LocalModelAgent):
     """
     An agent that generates SQL code based on the given table schema and the user query.
     """
+
+    def cot_wizard():
+        cot = "\nGenerate the SQL after thinking step by step: "
+        return cot
+
     @staticmethod
     def get_system_prompt() -> str:
         system_prompt = """\
@@ -344,8 +349,9 @@ class SQLGenerationAgent(LocalModelAgent):
         -- Using valid SQLite, answer the following question for the tables provided above.
         -- Question: {user_query}
         
-        Now, generate the correct SQL code directly in the following format:
+        You should generate the correct SQL code directly in the following format:
         ```sql\n<your_SQL_code>\n```"""
+        prompt += "\n\n" + SQLGenerationAgent.cot_wizard()
         return strip_all_lines(prompt)
 
     @staticmethod
@@ -368,8 +374,9 @@ class SQLGenerationAgent(LocalModelAgent):
         -- Using valid SQLite, answer the following question for the SQL schema provided above.
         -- Question: {user_query}
         
-        Now, generate the correct SQL code directly in the following format:
+        You should generate the correct SQL code directly in the following format:
         ```sql\n<your_SQL_code>\n```"""
+        prompt += "\n\n" + SQLGenerationAgent.cot_wizard()
         return strip_all_lines(prompt)
 
     def __call__(
