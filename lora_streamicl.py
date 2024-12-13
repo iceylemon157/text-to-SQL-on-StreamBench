@@ -330,7 +330,10 @@ class SQLGenerationAgent(LocalModelAgent):
     """
 
     def cot_wizard():
-        cot = "\nGenerate the SQL after thinking step by step: "
+        cot = """\
+            \nNow, first identify the relevant tables and columns, \
+            and then generate the correct SQL code directly in the following format:
+            ```sql\n<your_SQL_code>\n```"""
         return cot
 
     @staticmethod
@@ -348,10 +351,10 @@ class SQLGenerationAgent(LocalModelAgent):
         
         -- Using valid SQLite, answer the following question for the tables provided above.
         -- Question: {user_query}
+        \n""" + SQLGenerationAgent.cot_wizard()
         
-        You should generate the correct SQL code directly in the following format:
-        ```sql\n<your_SQL_code>\n```"""
-        prompt += "\n\n" + SQLGenerationAgent.cot_wizard()
+        # You should generate the correct SQL code directly in the following format:
+        # ```sql\n<your_SQL_code>\n```"""
         return strip_all_lines(prompt)
 
     @staticmethod
@@ -373,10 +376,9 @@ class SQLGenerationAgent(LocalModelAgent):
         -- SQL schema: {table_schema}
         -- Using valid SQLite, answer the following question for the SQL schema provided above.
         -- Question: {user_query}
-        
-        You should generate the correct SQL code directly in the following format:
-        ```sql\n<your_SQL_code>\n```"""
-        prompt += "\n\n" + SQLGenerationAgent.cot_wizard()
+        \n""" + SQLGenerationAgent.cot_wizard()
+        # You should generate the correct SQL code directly in the following format:
+        # ```sql\n<your_SQL_code>\n```"""
         return strip_all_lines(prompt)
 
     def __call__(
