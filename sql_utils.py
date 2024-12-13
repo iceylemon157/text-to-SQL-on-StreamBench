@@ -95,6 +95,7 @@ class RAG:
         self.insert_acc = 0 # Total number of insertions across all tables
 
         self.main_index = self.create_faiss_index()
+        self.main_id2evidence = {}
 
         self.seed = rag_config["seed"]
         self.top_k = rag_config["top_k"]
@@ -132,11 +133,14 @@ class RAG:
             self.insert_count[table_schema] = 0
 
         embedding = self.encode_data(key).astype('float32')  # Ensure the data type is float32
+
         self.main_index.add(np.expand_dims(embedding, axis=0))
+        self.main_id2evidence[str(self.insert_acc)] = value
+        self.insert_acc += 1
+
         self.indices[table_schema].add(np.expand_dims(embedding, axis=0))
         self.id2evidence[table_schema][str(self.insert_count[table_schema])] = value
         self.insert_count[table_schema] += 1
-        self.insert_acc += 1
 
         # Save the key-value pair to the file as input output (jsonl format)
         with open(self.rag_filename, 'a') as file:
@@ -154,6 +158,7 @@ class RAG:
         # If the table_schema has less than top_k chunks, use main_index to retrieve
         distances = []
         indices = []
+        text_list = []
         if data_count < top_k:
             main_distances, main_indices = self.main_index.search(np.expand_dims(self.encode_data(query), axis=0), top_k - data_count)
             main_distances = main_distances[0].tolist()
@@ -161,6 +166,7 @@ class RAG:
 
             distances.extend(main_distances)
             indices.extend(main_indices)
+            text_list.extend([self.main_id2evidence[str(idx)] for idx in indices])
 
         # Retrieve the top-k chunks from the table_schema
         if table_schema in self.indices:
@@ -171,6 +177,7 @@ class RAG:
 
             distances.extend(table_distances)
             indices.extend(table_indices)
+            text_list.extend([self.id2evidence[table_schema][str(idx)] for idx in table_indices])
 
         results = [{'link': str(idx), '_score': {'faiss': dist}} for dist, idx in zip(distances, indices)]
         # Re-order the sequence based on self.retrieve_order
@@ -179,7 +186,6 @@ class RAG:
         elif self.retrieve_order == RetrieveOrder.RANDOM.value:
             random.shuffle(results)
         
-        text_list = [self.id2evidence[table_schema][result["link"]] for result in results]
         return text_list
 
 def extract_json_string(res: str) -> str:
