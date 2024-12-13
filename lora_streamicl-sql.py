@@ -448,6 +448,9 @@ class SQLGenerationAgent(LocalModelAgent):
         """
         if correctness:
             table_schema = self.table_schemas[-1]
+            if not self.table_schemas_count.get(table_schema):
+                self.table_schemas_count[table_schema] = 0
+            self.table_schemas_count[table_schema] += 1
             user_query = self.inputs[-1]
             sql_code = self.self_outputs[-1]
             chunk = self.get_shot_template().format(question=user_query, answer=sql_code)
@@ -457,6 +460,9 @@ class SQLGenerationAgent(LocalModelAgent):
                 # Use LoRA to train the agent with RAG memory
                 # Train LoRA if correctness is True => ensure only trained once per 32 correct answers
                 self.trainWithQLoRA()
+
+        print('RAG size:', self.rag.insert_acc)
+        print('Table Schemas Count:', list(self.table_schemas_count.values()))
 
         return correctness
 
