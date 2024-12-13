@@ -152,24 +152,26 @@ class RAG:
         embedding = self.encode_data(query).astype('float32')  # Ensure the data type is float32
 
         # If the table_schema has less than top_k chunks, use main_index to retrieve
-        main_distances = []
-        main_indices = []
+        distances = []
+        indices = []
         if data_count < top_k:
             main_distances, main_indices = self.main_index.search(np.expand_dims(self.encode_data(query), axis=0), top_k - data_count)
             main_distances = main_distances[0].tolist()
             main_indices = main_indices[0].tolist()
 
-        # Retrieve the top-k chunks from the table_schema
-        embedding = self.encode_data(query).astype('float32')  # Ensure the data type is float32
-        top_k = min(top_k, self.insert_count[table_schema])
-        distances, indices = self.indices[table_schema].search(np.expand_dims(embedding, axis=0), top_k)
-        distances = distances[0].tolist()
-        indices = indices[0].tolist()
+            distances.extend(main_distances)
+            indices.extend(main_indices)
 
-        # Combine the main and table-specific distances and indices
-        distances.extend(main_distances)
-        indices.extend(main_indices)
-        
+        # Retrieve the top-k chunks from the table_schema
+        if table_schema in self.indices:
+            top_k = min(top_k, self.insert_count[table_schema])
+            table_distances, table_indices = self.indices[table_schema].search(np.expand_dims(embedding, axis=0), top_k)
+            table_distances = distances[0].tolist()
+            table_indices = indices[0].tolist()
+
+            distances.extend(table_distances)
+            indices.extend(table_indices)
+
         results = [{'link': str(idx), '_score': {'faiss': dist}} for dist, idx in zip(distances, indices)]
         # Re-order the sequence based on self.retrieve_order
         if self.retrieve_order == RetrieveOrder.SIMILAR_AT_BOTTOM.value:
