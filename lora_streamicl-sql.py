@@ -154,20 +154,20 @@ class LocalModelAgent(Agent):
         # save_steps: max_steps // 3
         # Total steps: 3 * (self.rag.insert_acc // batch_size)
         # alpha: https://arc.net/l/quote/folirtsl
-        batch_size = 4
+        batch_size = 1
         max_steps = (self.rag.insert_acc // batch_size)
         lora_train_training_args = LoraTrainTrainingArguments(
             output_dir=f'output/test_adapter/rag-count-{self.rag.insert_acc}', 
-            lora_r=4, 
-            lora_alpha=8,
+            lora_r=16, 
+            lora_alpha=32,
             bits=4, 
             do_train=True, 
             bf16=True, 
             learning_rate=3e-5, 
             max_steps=max_steps,
             save_steps=self.rag.insert_acc // (batch_size * 3), 
-            per_device_train_batch_size=2, 
-            gradient_accumulation_steps=2,
+            per_device_train_batch_size=1, 
+            gradient_accumulation_steps=1,
         )
         lora_train_generation_args = LoraTrainGenerationArguments(max_new_tokens=self.llm_config['max_tokens'])
 
