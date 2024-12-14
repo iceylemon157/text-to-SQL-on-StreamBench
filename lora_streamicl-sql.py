@@ -9,7 +9,7 @@ import warnings
 from transformers import logging as transformers_logging
 
 from sql_utils import RAG, strip_all_lines
-from hw3.lora_train_sql import lora_train, LoraTrainDataArguments, LoraTrainGenerationArguments, LoraTrainModelArguments, LoraTrainTrainingArguments
+from hw3.lora_train_sql import lora_train, smart_tokenizer_and_embedding_resize, LoraTrainDataArguments, LoraTrainGenerationArguments, LoraTrainModelArguments, LoraTrainTrainingArguments
 
 from peft import PeftModel
 
@@ -118,12 +118,17 @@ class LocalModelAgent(Agent):
                 torch_dtype=torch.float16,
                 device_map=self.llm_config["device"]
             )
+
+        self.tokenizer = AutoTokenizer.from_pretrained(self.llm_config["model_name"])
+        if self.tokenizer._pad_token is None:
+            smart_tokenizer_and_embedding_resize(
+                special_tokens_dict=dict(pad_token=DEFAULT_PAD_TOKEN),
+                tokenizer=self.tokenizer,
+                model=self.model,
+            )
         
         if peft_path:
             self.model = PeftModel.from_pretrained(self.model, peft_path)
-            self.tokenizer = AutoTokenizer.from_pretrained(peft_path)
-        else:
-            self.tokenizer = AutoTokenizer.from_pretrained(self.llm_config["model_name"])
 
         self.model.eval()
 
