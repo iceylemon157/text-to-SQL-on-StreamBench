@@ -121,8 +121,10 @@ class LocalModelAgent(Agent):
         
         if peft_path:
             self.model = PeftModel.from_pretrained(self.model, peft_path)
+            self.tokenizer = AutoTokenizer.from_pretrained(peft_path)
+        else:
+            self.tokenizer = AutoTokenizer.from_pretrained(self.llm_config["model_name"])
 
-        self.tokenizer = AutoTokenizer.from_pretrained(self.llm_config["model_name"])
         if self.tokenizer._pad_token is None:
             smart_tokenizer_and_embedding_resize(
                 special_tokens_dict=dict(pad_token=DEFAULT_PAD_TOKEN),
