@@ -9,13 +9,14 @@ import warnings
 from transformers import logging as transformers_logging
 
 from sql_utils import RAG, strip_all_lines
-from hw3.lora_train_sql import lora_train, LoraTrainDataArguments, LoraTrainGenerationArguments, LoraTrainModelArguments, LoraTrainTrainingArguments
+from hw3.lora_train_sql import lora_train, smart_tokenizer_and_embedding_resize, LoraTrainDataArguments, LoraTrainGenerationArguments, LoraTrainModelArguments, LoraTrainTrainingArguments
 
 from peft import PeftModel
 
 # Ignore warning messages from transformers
 warnings.filterwarnings("ignore")
 transformers_logging.set_verbosity_error()
+DEFAULT_PAD_TOKEN = "[PAD]"
 
 class LocalModelAgent(Agent):
     """
@@ -122,6 +123,13 @@ class LocalModelAgent(Agent):
             self.model = PeftModel.from_pretrained(self.model, peft_path)
 
         self.tokenizer = AutoTokenizer.from_pretrained(self.llm_config["model_name"])
+        if self.tokenizer._pad_token is None:
+            smart_tokenizer_and_embedding_resize(
+                special_tokens_dict=dict(pad_token=DEFAULT_PAD_TOKEN),
+                tokenizer=self.tokenizer,
+                model=self.model,
+            )
+
         self.model.eval()
 
     def unloadModelAndTokenizer(self):
@@ -494,8 +502,8 @@ if __name__ == "__main__":
         'output_path': args.output_path
     }
     llm_config = {
-        # 'model_name': args.model_name,
-        'model_name': 'Qwen/Qwen2.5-7B-Instruct',
+        'model_name': args.model_name,
+        # 'model_name': 'Qwen/Qwen2.5-7B-Instruct',
         # 'model_names': ['Qwen/Qwen2.5-7B-Instruct', 'meta-llama/Llama-3.1-8B-Instruct', 'prince-canuma/Ministral-8B-Instruct-2410-HF'],
         'exp_name': f'lora_streamicl_{args.bench_name}_{args.model_name}',
         'bench_name': bench_cfg['bench_name'],
