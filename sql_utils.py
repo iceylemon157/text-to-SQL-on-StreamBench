@@ -56,8 +56,8 @@ def get_nlsql_zeroshot_prompt(table_schema: str, user_query: str) -> str:
     
     -- Using valid SQLite, answer the following question for the tables provided above.
     -- Question: {user_query}
-    \n\nNow, first identify the relevant tables and columns, \
-    and then generate the correct SQL code directly in the following format:
+
+    Now, generate the correct SQL code directly in the following format
     ```sql\n<your_SQL_code>\n```"""
     
     # Now, generate the correct SQL code directly in the following format:
@@ -160,20 +160,21 @@ class RAG:
         indices = []
         text_list = []
         if data_count < top_k:
-            main_distances, main_indices = self.main_index.search(np.expand_dims(self.encode_data(query), axis=0), top_k - data_count)
+            k = min(top_k - data_count, self.insert_acc)
+            main_distances, main_indices = self.main_index.search(np.expand_dims(embedding, axis=0), k)
             main_distances = main_distances[0].tolist()
             main_indices = main_indices[0].tolist()
 
             distances.extend(main_distances)
             indices.extend(main_indices)
-            text_list.extend([self.main_id2evidence[str(idx)] for idx in indices])
+            text_list.extend([self.main_id2evidence[str(idx)] for idx in main_indices])
 
         # Retrieve the top-k chunks from the table_schema
         if table_schema in self.indices:
             top_k = min(top_k, self.insert_count[table_schema])
             table_distances, table_indices = self.indices[table_schema].search(np.expand_dims(embedding, axis=0), top_k)
-            table_distances = distances[0].tolist()
-            table_indices = indices[0].tolist()
+            table_distances = table_distances[0].tolist()
+            table_indices = table_indices[0].tolist()
 
             distances.extend(table_distances)
             indices.extend(table_indices)
