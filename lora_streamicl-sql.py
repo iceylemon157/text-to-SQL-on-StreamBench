@@ -4,7 +4,7 @@ import random
 from base import Agent
 from colorama import Fore, Style
 import torch
-from transformers import AutoModelForCausalLM, AutoTokenizer, BitsAndBytesConfig
+from transformers import AutoModelForCausalLM, AutoTokenizer, BitsAndBytesConfig, set_seed
 import warnings
 from transformers import logging as transformers_logging
 
@@ -12,6 +12,16 @@ from sql_utils import RAG, strip_all_lines
 from hw3.lora_train_sql import lora_train, smart_tokenizer_and_embedding_resize, LoraTrainDataArguments, LoraTrainGenerationArguments, LoraTrainModelArguments, LoraTrainTrainingArguments
 
 from peft import PeftModel
+
+# Set the seed for reproducibility
+SEED = 3224
+set_seed(SEED)
+torch.manual_seed(SEED)
+try:
+    # If cuda is available, set the seed for all GPUs
+    torch.cuda.manual_seed_all(SEED)
+except:
+    pass
 
 # Ignore warning messages from transformers
 warnings.filterwarnings("ignore")
@@ -166,11 +176,12 @@ class LocalModelAgent(Agent):
             lora_r=16, 
             lora_alpha=32,
             bits=4, 
+            seed=3224,
             do_train=True, 
             bf16=True, 
             learning_rate=3e-5, 
             max_steps=max_steps,
-            save_steps=self.rag.insert_acc // (batch_size * 3), 
+            # save_steps=self.rag.insert_acc // (batch_size * 3), 
             per_device_train_batch_size=1, 
             gradient_accumulation_steps=1,
         )
@@ -477,6 +488,11 @@ class SQLGenerationAgent(LocalModelAgent):
 if __name__ == "__main__":
     from argparse import ArgumentParser
     from execution_pipeline import main
+
+    # Create output directory if it does not exist
+    import os
+    if not os.path.exists('output'):
+        os.makedirs('output')
 
     parser = ArgumentParser()
     parser.add_argument('--bench_name', type=str, required=True)

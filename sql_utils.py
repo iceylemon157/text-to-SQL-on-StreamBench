@@ -5,7 +5,7 @@ import logging
 import numpy as np
 from enum import Enum
 from pathlib import Path
-from transformers import AutoTokenizer, AutoModel
+from transformers import AutoTokenizer, AutoModel, set_seed
 import transformers
 import json
 
@@ -98,6 +98,15 @@ class RAG:
         self.main_id2evidence = {}
 
         self.seed = rag_config["seed"]
+        set_seed(self.seed)
+        torch.manual_seed(self.seed)
+        try:
+            # If cuda is available, set the seed for all GPUs
+            torch.cuda.manual_seed_all(self.seed)
+        except:
+            pass
+        np.random.seed(self.seed)
+
         self.top_k = rag_config["top_k"]
         orders = {member.value for member in RetrieveOrder}
         assert rag_config["order"] in orders

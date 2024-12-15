@@ -722,6 +722,12 @@ def lora_train(
     model.config.use_cache = False
     print('loaded model')
     set_seed(args.seed)
+    torch.manual_seed(args.seed)
+    try:
+        # If cuda is available, set the seed for all GPUs
+        torch.cuda.manual_seed_all(args.seed)
+    except:
+        pass
 
     data_module = make_data_module(tokenizer=tokenizer, args=args)
     
