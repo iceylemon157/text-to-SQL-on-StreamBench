@@ -13,15 +13,7 @@ from hw3.lora_train_sql import lora_train, smart_tokenizer_and_embedding_resize,
 
 from peft import PeftModel
 
-# Set the seed for reproducibility
-SEED = 3224
-set_seed(SEED)
-torch.manual_seed(SEED)
-try:
-    # If cuda is available, set the seed for all GPUs
-    torch.cuda.manual_seed_all(SEED)
-except:
-    pass
+
 
 # Ignore warning messages from transformers
 warnings.filterwarnings("ignore")
@@ -536,6 +528,15 @@ if __name__ == "__main__":
             'rag_filename': 'output/rag_data.jsonl'
         }
     }
+    # Set the seed for reproducibility
+    SEED = 3224
+    set_seed(SEED)
+    torch.manual_seed(SEED)
+    try:
+        # If cuda is available, set the seed for all GPUs
+        torch.cuda.manual_seed_all(SEED)
+    except:
+        pass
     agent = agent_name(llm_config)
     main(agent, bench_cfg, debug=args.debug, use_wandb=args.use_wandb, wandb_name=llm_config["exp_name"], wandb_config=llm_config)
 
