@@ -43,7 +43,7 @@ from peft import (
 from peft.tuners.lora import LoraLayer
 from transformers.trainer_utils import PREFIX_CHECKPOINT_DIR
 
-from sql_utils import get_prompt
+from class_utils import get_prompt
 
 def is_ipex_available():
     def get_major_and_minor_from_version(full_version):
@@ -629,7 +629,7 @@ def make_data_module(tokenizer: transformers.PreTrainedTokenizer, args) -> Dict:
             })
         elif dataset_format == 'input-output':
             dataset = dataset.map(lambda x: {
-                'input': get_prompt(x['table_schema'], x['input'], tokenizer),
+                'input': x['input'],
                 'output': x['output'],
             })
         # Remove unused columns.

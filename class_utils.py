@@ -136,6 +136,12 @@ class RAG:
         self.id2evidence[str(self.insert_acc)] = value
         self.insert_acc += 1
 
+        # Save the key-value pair to the file as input output (jsonl format)
+        with open(self.rag_filename, 'a') as file:
+            dic = {"input": key, "output": value}
+            line = json.dumps(dic)
+            print(line, file=file)
+
     def retrieve(self, query: str, top_k: int) -> list[str]:
         """Retrieve top-k text chunks"""
         embedding = self.encode_data(query).astype('float32')  # Ensure the data type is float32

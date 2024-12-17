@@ -37,6 +37,7 @@ class LocalModelAgent(Agent):
         # Save the streaming inputs and outputs for iterative improvement
         self.inputs = list()
         self.self_outputs = list()
+        self.zero_shot_prompts = list()
         self.table_schemas = list()
 
         # Correct label types and wrong label count for classification agent
@@ -71,12 +72,14 @@ class LocalModelAgent(Agent):
     def update(self, correctness: bool) -> bool:
         """
         Update the agent based on the correctness of its output.
+        NOTE: This function is used for classification only.
         """
         if correctness:
-            question = self.inputs[-1]
+            # patient_profile = self.inputs[-1]
             answer = self.self_outputs[-1]
-            chunk = self.get_shot_template().format(question=question, answer=answer)
-            self.rag.insert(key=question, value=chunk)
+            zero_shot_prompt = self.zero_shot_prompts[-1]
+            # chunk = self.get_shot_template().format(question=patient_profile, answer=answer)
+            self.rag.insert(key=zero_shot_prompt, value=answer)
 
             # self.correct_label_types.add(answer)
             if answer not in self.correct_label_types:
@@ -312,6 +315,7 @@ class ClassificationAgent(LocalModelAgent):
             "output_pred": response,
         })
         self.inputs.append(text)
+        self.zero_shot_prompts.append(prompt_zeroshot)
         self.self_outputs.append(f"{str(prediction)}. {label2desc[int(prediction)]}")
 
         return prediction
