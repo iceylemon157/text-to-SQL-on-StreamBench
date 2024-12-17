@@ -294,10 +294,6 @@ class ClassificationAgent(LocalModelAgent):
             print(Fore.YELLOW + "No RAG shots found. Using zeroshot prompt." + Fore.RESET)
             prompt = prompt_zeroshot
         
-        self.load_model_and_tokenizer()
-        print('Current Model:', self.model_name)
-        if prompt == prompt_zeroshot:
-            print('Using zeroshot' if prompt == prompt_zeroshot else 'Using RAG')
         print('RAG size:', self.rag.insert_acc)
         print('Different Types of Labels:', len(self.correct_label_types))
 
