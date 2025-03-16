@@ -9,7 +9,7 @@ import warnings
 from transformers import logging as transformers_logging
 
 from my_utils import RAG, strip_all_lines
-from hw3.lora_train import lora_train, LoraTrainDataArguments, LoraTrainGenerationArguments, LoraTrainModelArguments, LoraTrainTrainingArguments
+from lora_training_utils.lora_train import lora_train, LoraTrainDataArguments, LoraTrainGenerationArguments, LoraTrainModelArguments, LoraTrainTrainingArguments
 
 from peft import PeftModel
 
@@ -146,26 +146,28 @@ class LocalModelAgent(Agent):
         # Batch size: 8
         # save_steps: max_steps // 3
         # Total steps: 3 * (self.rag.insert_acc // batch_size)
-        batch_size = 8
+        # alpha: https://arc.net/l/quote/folirtsl
+        batch_size = 1
+        max_steps = (self.rag.insert_acc // batch_size)
         lora_train_training_args = LoraTrainTrainingArguments(
             output_dir=f'output/test_adapter/rag-count-{self.rag.insert_acc}', 
             lora_r=4, 
+            lora_alpha=8,
             bits=4, 
             do_train=True, 
             bf16=True, 
             learning_rate=3e-5, 
-            max_steps=3 * (self.rag.insert_acc // batch_size),
-            save_steps=self.rag.insert_acc, 
-            per_device_train_batch_size=4, 
-            gradient_accumulation_steps=2,
+            max_steps=max_steps,
+            save_steps=self.rag.insert_acc // (batch_size * 3), 
+            per_device_train_batch_size=1, 
+            gradient_accumulation_steps=1,
         )
         lora_train_generation_args = LoraTrainGenerationArguments(max_new_tokens=self.llm_config['max_tokens'])
 
         lora_train(lora_train_model_args, lora_train_data_args, lora_train_training_args, lora_train_generation_args)
 
         # Reload the LLM agent
-        total_steps = 3 * (self.rag.insert_acc // batch_size)
-        self.loadModelAndTokenizer(f'output/test_adapter/rag-count-{self.rag.insert_acc}/checkpoint-{total_steps}')
+        self.loadModelAndTokenizer(f'output/test_adapter/rag-count-{self.rag.insert_acc}/checkpoint-{max_steps}')
 
 
 class ClassificationAgent(LocalModelAgent):
@@ -326,6 +328,14 @@ class SQLGenerationAgent(LocalModelAgent):
     """
     An agent that generates SQL code based on the given table schema and the user query.
     """
+
+    def cot_wizard():
+        cot = """\
+            \nNow, first identify the relevant tables and columns, \
+            and then generate the correct SQL code directly in the following format:
+            ```sql\n<your_SQL_code>\n```"""
+        return cot
+
     @staticmethod
     def get_system_prompt() -> str:
         system_prompt = """\
@@ -341,9 +351,10 @@ class SQLGenerationAgent(LocalModelAgent):
         
         -- Using valid SQLite, answer the following question for the tables provided above.
         -- Question: {user_query}
+        \n""" + SQLGenerationAgent.cot_wizard()
         
-        Now, generate the correct SQL code directly in the following format:
-        ```sql\n<your_SQL_code>\n```"""
+        # You should generate the correct SQL code directly in the following format:
+        # ```sql\n<your_SQL_code>\n```"""
         return strip_all_lines(prompt)
 
     @staticmethod
@@ -365,9 +376,9 @@ class SQLGenerationAgent(LocalModelAgent):
         -- SQL schema: {table_schema}
         -- Using valid SQLite, answer the following question for the SQL schema provided above.
         -- Question: {user_query}
-        
-        Now, generate the correct SQL code directly in the following format:
-        ```sql\n<your_SQL_code>\n```"""
+        \n""" + SQLGenerationAgent.cot_wizard()
+        # You should generate the correct SQL code directly in the following format:
+        # ```sql\n<your_SQL_code>\n```"""
         return strip_all_lines(prompt)
 
     def __call__(

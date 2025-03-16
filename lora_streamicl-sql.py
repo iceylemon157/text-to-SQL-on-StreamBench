@@ -9,7 +9,7 @@ import warnings
 from transformers import logging as transformers_logging
 
 from sql_utils import RAG, strip_all_lines
-from hw3.lora_train_sql import lora_train, smart_tokenizer_and_embedding_resize, LoraTrainDataArguments, LoraTrainGenerationArguments, LoraTrainModelArguments, LoraTrainTrainingArguments
+from lora_training_utils.lora_train_sql import lora_train, smart_tokenizer_and_embedding_resize, LoraTrainDataArguments, LoraTrainGenerationArguments, LoraTrainModelArguments, LoraTrainTrainingArguments
 
 from peft import PeftModel
 

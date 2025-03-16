@@ -14,3 +14,8 @@ protobuf
 sentencepiece
 pandas
 wandb
+
+# Additional requirements for training
+bm25s
+einops
+peft

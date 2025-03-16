@@ -9,7 +9,7 @@ import warnings
 from transformers import logging as transformers_logging
 
 from my_utils import RAG, strip_all_lines
-from hw3.lora_train import lora_train, LoraTrainDataArguments, LoraTrainGenerationArguments, LoraTrainModelArguments, LoraTrainTrainingArguments
+from lora_training_utils.lora_train import lora_train, LoraTrainDataArguments, LoraTrainGenerationArguments, LoraTrainModelArguments, LoraTrainTrainingArguments
 
 from peft import PeftModel
 
@@ -76,9 +76,9 @@ class LocalModelAgent(Agent):
                 self.correct_label_types[answer] = 0
             self.correct_label_types[answer] += 1
 
-            if self.rag.insert_acc % 100 == 0:
+            if self.rag.insert_acc % 32 == 0:
                 # Use LoRA to train the agent with RAG memory
-                # Train LoRA if correctness is True => ensure only trained once per 100 correct answers
+                # Train LoRA if correctness is True => ensure only trained once per 32 correct answers
                 self.trainWithQLoRA()
 
         else:
@@ -140,24 +140,32 @@ class LocalModelAgent(Agent):
 
         lora_train_model_args = LoraTrainModelArguments(model_name_or_path=self.llm_config["model_name"])
         lora_train_data_args = LoraTrainDataArguments(dataset=self.rag.rag_filename) # TODO: Implement LoRA dataset
-        # TODO: output_dir
+
+        # Take about 3 epochs of training
+        # Dataset size: self.rag.insert_acc
+        # Batch size: 8
+        # save_steps: max_steps // 3
+        # Total steps: 3 * (self.rag.insert_acc // batch_size)
+        batch_size = 8
         lora_train_training_args = LoraTrainTrainingArguments(
             output_dir=f'output/test_adapter/rag-count-{self.rag.insert_acc}', 
-            lora_r=16, 
+            lora_r=4, 
             bits=4, 
             do_train=True, 
             bf16=True, 
             learning_rate=3e-5, 
-            max_steps=100, 
-            save_steps=50,
-            gradient_accumulation_steps=1,
+            max_steps=3 * (self.rag.insert_acc // batch_size),
+            save_steps=self.rag.insert_acc, 
+            per_device_train_batch_size=4, 
+            gradient_accumulation_steps=2,
         )
         lora_train_generation_args = LoraTrainGenerationArguments(max_new_tokens=self.llm_config['max_tokens'])
 
         lora_train(lora_train_model_args, lora_train_data_args, lora_train_training_args, lora_train_generation_args)
 
         # Reload the LLM agent
-        self.loadModelAndTokenizer(f'output/test_adapter/rag-count-{self.rag.insert_acc}/checkpoint-100')
+        total_steps = 3 * (self.rag.insert_acc // batch_size)
+        self.loadModelAndTokenizer(f'output/test_adapter/rag-count-{self.rag.insert_acc}/checkpoint-{total_steps}')
 
 
 class ClassificationAgent(LocalModelAgent):
