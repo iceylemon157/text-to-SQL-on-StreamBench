@@ -352,7 +352,7 @@ def get_accelerate_model(args, checkpoint_dir):
         # trust_remote_code=args.trust_remote_code,
         # use_auth_token=args.use_auth_token,
     )
-    if tokenizer._pad_token is None:
+    if tokenizer.pad_token is None:
         smart_tokenizer_and_embedding_resize(
             special_tokens_dict=dict(pad_token=DEFAULT_PAD_TOKEN),
             tokenizer=tokenizer,
